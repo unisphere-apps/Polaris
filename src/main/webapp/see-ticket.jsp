@@ -1,3 +1,8 @@
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="modele.Modele" %>
+<%@ page import="controleur.*" %>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -61,39 +66,76 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar with Ticket List -->
-            <div class="col-md-3 col-lg-2 p-3">
-                <div class="ticket-list-item">Ticket-1</div>
-                <div class="ticket-list-item">Ticket-2</div>
-                <div class="ticket-list-item">Ticket-3</div>
-                <div class="ticket-list-item">Ticket-4</div>
-                <div class="ticket-list-item">Ticket-5</div>
-                <div class="ticket-list-item">Ticket-6</div>
-            </div>
+			<div class="col-md-3 col-lg-2 p-3">
+			    <% 
+			        ArrayList<Ticket> lesTickets = (ArrayList<Ticket>) request.getAttribute("lesTickets");
+			        if (lesTickets != null) {
+			            for (Ticket ticket : lesTickets) {
+			    %>
+			                <div class="ticket-list-item"
+			                     data-sujet="<%= ticket.getSujet() %>"
+			                     data-categorie="<%= ticket.getCategorieId() != null ? ticket.getCategorieId() : "" %>" 
+			                     data-statut="<%= ticket.getStatut() %>"
+			                     data-description="<%= ticket.getDescription() %>">
+			                    <%= ticket.getSujet() %>
+			                </div>
+			    <%
+			            }
+			        }
+			    %>
+			</div>
+
+
 
             <!-- Main Content for Ticket Details and Messages -->
-            <div class="col-md-9 col-lg-10">
-                <div class="main-content-wrapper mt-5">
-                    <!-- Ticket Details -->
-                    <div class="d-flex justify-content-center mb-4">
-                        <div class="pill">Titre</div>
-                        <div class="pill">Catégorie</div>
-                        <div class="pill">Statut</div>
-                    </div>
-
-                    <div class="description-box mb-4">
-                        Description
-                    </div>
-
-                    <!-- Messages Section -->
-                    <div class="d-flex flex-column align-items-start">
-                        <div class="message-bubble align-self-start">Message 1</div>
-                        <div class="message-bubble align-self-end">Message 2</div>
-                        <div class="message-bubble align-self-start">Message 3</div>
-                    </div>
-                </div>
-            </div>
+			<div class="col-md-9 col-lg-10">
+			    <div class="main-content-wrapper mt-5">
+			        <!-- Ticket Details -->
+			        <div class="d-flex justify-content-center mb-4">
+			            <div class="pill"><span id="sujet">Sélectionnez un ticket</span></div>
+			            <div class="pill"><span id="categorie">-</span></div>
+			            <div class="pill"><span id="statut">-</span></div>
+			        </div>
+			
+			        <div class="description-box mb-4">
+			            Description: <span id="description">Cliquez sur un ticket pour voir les détails</span>
+			        </div>
+			
+			        <!-- Messages Section (optional) -->
+			        <div class="d-flex flex-column align-items-start">
+			            <div class="message-bubble align-self-start">Message 1</div>
+			            <div class="message-bubble align-self-end">Message 2</div>
+			            <div class="message-bubble align-self-start">Message 3</div>
+			        </div>
+			    </div>
+			</div>
         </div>
     </div>
+    
+	<script>
+	    document.addEventListener("DOMContentLoaded", function () {
+	        // Select all ticket items in the sidebar
+	        const ticketItems = document.querySelectorAll(".ticket-list-item");
+	
+	        // Add click event listeners to each ticket item
+	        ticketItems.forEach(function (ticketItem) {
+	            ticketItem.addEventListener("click", function () {
+	                // Get the data attributes from the clicked ticket item
+	                const sujet = this.getAttribute("data-sujet");
+	                const categorie = this.getAttribute("data-categorie");
+	                const statut = this.getAttribute("data-statut");
+	                const description = this.getAttribute("data-description");
+	
+	                // Update the main content fields with the ticket's information
+	                document.getElementById("sujet").textContent = sujet;
+	                document.getElementById("categorie").textContent = categorie;
+	                document.getElementById("statut").textContent = statut;
+	                document.getElementById("description").textContent = description;
+	            });
+	        });
+	    });
+	</script>
+
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.7/dist/umd/popper.min.js"></script>

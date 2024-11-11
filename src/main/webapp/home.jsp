@@ -14,7 +14,7 @@
         <div class="btn-group" role="group">
             <a href="index.jsp?page=1" class="btn btn-primary btn-lg mx-2">FAQ</a>
             <a href="index.jsp?page=2" class="btn btn-primary btn-lg mx-2">Créer un ticket</a>
-            <a href="index.jsp?page=3" class="btn btn-primary btn-lg mx-2">Voir mes tickets</a>
+            <a href="http://localhost:8080/Polaris/tickets" class="btn btn-primary btn-lg mx-2">Voir mes tickets</a>
         </div>
     </div>
 
