@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
@@ -16,6 +17,7 @@ import de.mkammerer.argon2.Argon2Factory;
 import controleur.Categorie;
 import controleur.Ticket;
 import controleur.User;
+import controleur.ReponseTicket;
 
 public class Modele {
 
@@ -28,6 +30,25 @@ public class Modele {
             return null;
         }
     }
+    
+    public static boolean isAdmin(int userId) {
+        String query = "SELECT role_id FROM user WHERE id_user = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, userId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    int roleId = resultSet.getInt("role_id");
+                    return roleId == 2 || roleId == 3; // Vérifie si le rôle est admin (2 ou 3)
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false; // Par défaut, retourne false si l'utilisateur n'est pas trouvé ou en cas d'erreur
+    }
+
 
     public static boolean authenticateUser(String email, String password) {
         String query = "SELECT mdp FROM user WHERE email = ?";
@@ -65,11 +86,15 @@ public class Modele {
         }
         return -1; // Return -1 if no userId is found
     }
-
+    
+    //ticket
 
     public static ArrayList<Ticket> selectAllTickets() {
         ArrayList<Ticket> tickets = new ArrayList<>();
-        String query = "SELECT id_ticket, date_creation, sujet, description, statut, user_id, categorie_id FROM POL_ticket";
+        // La clause ORDER BY trie d'abord les tickets "ouvert", puis les tickets "fermé".
+        String query = "SELECT id_ticket, date_creation, sujet, description, statut, user_id, categorie_id " +
+                       "FROM POL_ticket " +
+                       "ORDER BY CASE statut WHEN 'ouvert' THEN 1 ELSE 2 END, date_creation DESC";
 
         try (Connection connection = getConnection();
              Statement statement = connection.createStatement();
@@ -114,6 +139,115 @@ public class Modele {
             System.err.println("Error saving ticket: " + e.getMessage());
         }
     }
+    
+    //reponse ticket
+    
+    public static boolean addReponse(int ticketId, int userId, String contenu) {
+        String query = "INSERT INTO pol_reponse_ticket (ticket_id, user_id, contenu) VALUES (?, ?, ?)";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, ticketId);
+            statement.setInt(2, userId);
+            statement.setString(3, contenu);
+
+            int rowsAffected = statement.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    public static boolean changeTicketStatus(int ticketId, String newStatus) {
+        String query = "UPDATE POL_ticket SET statut = ? WHERE id_ticket = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, newStatus);
+            statement.setInt(2, ticketId);
+
+            int rowsAffected = statement.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error changing ticket status: " + e.getMessage());
+        }
+        return false;
+    }
+
+    
+    public static ArrayList<ReponseTicket> getReponsesByTicketId(int ticketId) {
+        ArrayList<ReponseTicket> lesReponses = new ArrayList<>();
+        String query = "SELECT id_reponse, date_reponse, contenu, user_id, ticket_id FROM pol_reponse_ticket WHERE ticket_id = ?";
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, ticketId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    ReponseTicket reponse = new ReponseTicket(
+                            resultSet.getInt("id_reponse"),
+                            resultSet.getTimestamp("date_reponse"),
+                            resultSet.getString("contenu"),
+                            resultSet.getInt("user_id"),
+                            resultSet.getInt("ticket_id")
+                    );
+                    lesReponses.add(reponse);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Messages trouvés pour ticketId " + ticketId + ": " + lesReponses.size());
+
+        return lesReponses;
+    }
+    
+    public static boolean deleteReponse(int idReponse) {
+        String query = "DELETE FROM pol_reponse_ticket WHERE id_reponse = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, idReponse);
+
+            int rowsAffected = statement.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    public static ReponseTicket getReponseById(int idReponse) {
+        String query = "SELECT * FROM pol_reponse_ticket WHERE id_reponse = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, idReponse);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Timestamp dateReponse = resultSet.getTimestamp("date_reponse");
+                    String contenu = resultSet.getString("contenu");
+                    int userId = resultSet.getInt("user_id");
+                    int ticketId = resultSet.getInt("ticket_id");
+
+                    return new ReponseTicket(idReponse, dateReponse, contenu, userId, ticketId);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    //===============================
 
     public static ArrayList<Categorie> selectAllCategories() {
         ArrayList<Categorie> categories = new ArrayList<>();
@@ -135,6 +269,25 @@ public class Modele {
         }
         return categories;
     }
+    
+    public static Categorie getCategorieById(int idCategorie) {
+        String query = "SELECT id_categorie, nom FROM POL_categorie WHERE id_categorie = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, idCategorie);
+
+            try (ResultSet result = statement.executeQuery()) {
+                if (result.next()) {
+                    return new Categorie(result.getInt("id_categorie"), result.getString("nom"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error retrieving category by ID: " + e.getMessage());
+        }
+        return null;
+    }
+
 
     public static User getUserById(int idUser) {
         String query = "SELECT * FROM user WHERE id_user = ?";

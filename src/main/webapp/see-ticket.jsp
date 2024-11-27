@@ -4,7 +4,27 @@
         response.sendRedirect("login.jsp");
         return;
     }
+
+    ArrayList<Ticket> lesTickets = (ArrayList<Ticket>) request.getAttribute("lesTickets");
+    Ticket selectedTicket = null;
+    User ticketUser = null;
+    Categorie ticketCategory = null;
+
+    String selectedTicketId = request.getParameter("ticketId");
+    if (selectedTicketId != null && lesTickets != null) {
+        for (Ticket ticket : lesTickets) {
+            if (String.valueOf(ticket.getIdTicket()).equals(selectedTicketId)) {
+                selectedTicket = ticket;
+                ticketUser = Modele.getUserById(ticket.getUserId());
+                if (ticket.getCategorieId() != null) {
+                    ticketCategory = Modele.getCategorieById(ticket.getCategorieId());
+                }
+                break;
+            }
+        }
+    }
 %>
+
 
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="modele.Modele" %>
@@ -27,11 +47,10 @@
             border-radius: 20px;
             margin-bottom: 10px;
             font-weight: bold;
-            cursor: pointer; /* Change cursor to pointer */
         }
 
         .ticket-list-item:hover {
-            background-color: #ff7a29; /* Slightly darker orange on hover */
+            background-color: #ff7a29;
         }
 
         .pill {
@@ -49,24 +68,39 @@
             color: black;
             padding: 20px;
             border-radius: 20px;
-            text-align: center;
+            text-align: left;
             max-width: 100%;
             font-weight: bold;
         }
 
         .message-bubble {
-            background-color: #51c9ff;
+            background-color: #e9ecef;
             color: black;
             padding: 10px 20px;
-            border-radius: 20px;
+            border-radius: 10px;
             margin: 10px 0;
-            text-align: center;
-            font-weight: bold;
+            text-align: left;
+            font-weight: normal;
+        }
+
+        .message-bubble.admin {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .message-bubble small {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .message-bubble.admin small {
+            color: white;
         }
 
         .main-content-wrapper {
             background-color: #f8f9fa;
-            padding: 40px 300px; /* Increased padding on sides */
+            padding: 40px 300px;
             border-radius: 15px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             max-width: 100%;
@@ -78,109 +112,93 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar with Ticket List -->
-            <div class="col-md-3 col-lg-2 p-3">
-                <% 
-                    ArrayList<Ticket> lesTickets = (ArrayList<Ticket>) request.getAttribute("lesTickets");
-                    if (lesTickets != null) {
-                        for (Ticket ticket : lesTickets) {
-                            int userId = ticket.getUserId();
-                %>
-                            <div class="ticket-list-item"
-                                 data-sujet="<%= ticket.getSujet() %>"
-                                 data-categorie="<%= ticket.getCategorieId() != null ? ticket.getCategorieId() : "" %>" 
-                                 data-statut="<%= ticket.getStatut() %>"
-                                 data-description="<%= ticket.getDescription() %>"
-                                 data-user-id="<%= userId %>">
-                                <%= ticket.getSujet() %>
-                            </div>
-                <%
-                        }
-                    }
-                %>
-            </div>
+			<div class="col-md-3 col-lg-2 p-3">
+			    <% 
+			        if (lesTickets != null) {
+			            for (Ticket ticket : lesTickets) {
+			                boolean isSelected = selectedTicket != null && ticket.getIdTicket() == selectedTicket.getIdTicket();
+			                boolean isClosed = "fermé".equalsIgnoreCase(ticket.getStatut());
+			    %>
+			                <form action="tickets" method="get">
+			                    <input type="hidden" name="ticketId" value="<%= ticket.getIdTicket() %>">
+			                    <button type="submit" 
+			                            class="ticket-list-item btn btn-block <%= isSelected ? "bg-warning" : (isClosed ? "bg-danger" : "") %>">
+			                        <%= ticket.getSujet() %>
+			                    </button>
+			                </form>
+			    <%
+			            }
+			        }
+			    %>
+			</div>
 
             <!-- Main Content for Ticket Details and Messages -->
             <div class="col-md-9 col-lg-10">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <!-- Back to Home Button -->
                     <a href="home.jsp" class="btn btn-secondary btn-lg">Retour à l'accueil</a>
-                    <h2>Ticket Details</h2>
-                    <!-- Create a Ticket Button -->
+                    <h2>Détails du ticket</h2>
                     <a href="/Polaris/tickets?action=create" class="btn btn-primary btn-lg">Créer un ticket</a>
                 </div>
 
                 <div class="main-content-wrapper mt-2">
                     <!-- Ticket Details -->
-                    <div class="d-flex justify-content-center mb-4">
-                        <div class="pill">Sujet: <span id="sujet">Sélectionnez un ticket</span></div>
-                        <div class="pill">Catégorie: <span id="categorie">-</span></div>
-                        <div class="pill">Statut: <span id="statut">-</span></div>
-                        <div class="pill">Utilisateur ID: <span id="userId">-</span></div>
-                    </div>
+                    <% if (selectedTicket != null) { %>
+                        <div class="d-flex justify-content-center mb-4">
+                            <div class="pill">Sujet: <%= selectedTicket.getSujet() %></div>
+                            <div class="pill">Catégorie: <%= ticketCategory != null ? ticketCategory.getNom() : "-" %></div>
+                            <div class="pill">Statut: <%= selectedTicket.getStatut() %></div>
+                            <div class="pill">
+                                Utilisateur: <%= ticketUser != null ? ticketUser.getNom() + " " + ticketUser.getPrenom() : "Inconnu" %>
+                            </div>
+                        </div>
 
-                    <div class="description-box mb-4">
-                        Description: <span id="description">Cliquez sur un ticket pour voir les détails</span>
-                    </div>
+                        <div class="description-box mb-4">
+                            Description: <%= selectedTicket.getDescription() %>
+                        </div>
 
-                    <!-- Messages Section -->
-                    <div class="d-flex flex-column align-items-start">
-                        <div class="message-bubble align-self-start">Message 1</div>
-                        <div class="message-bubble align-self-end">Message 2</div>
-                        <div class="message-bubble align-self-start">Message 3</div>
-                    </div>
+                        <!-- Button to Close or Reopen Ticket -->
+						<form action="ticket-status" method="post" class="mb-4">
+						    <input type="hidden" name="ticketId" value="<%= selectedTicket.getIdTicket() %>">
+						    <button type="submit" name="action" value="<%= selectedTicket.getStatut().equals("ouvert") ? "fermer" : "reouvrir" %>" 
+						            class="btn <%= selectedTicket.getStatut().equals("ouvert") ? "btn-danger" : "btn-success" %>">
+						        <%= selectedTicket.getStatut().equals("ouvert") ? "Fermer" : "Réouvrir" %>
+						    </button>
+						</form>
 
-                    <!-- Input to Submit a New Message -->
-                    <div class="mt-4">
-                        <form class="d-flex align-items-center">
-                            <input type="text" class="form-control" placeholder="Écrivez votre message ici..." id="newMessage">
-                            <button type="button" class="btn btn-primary ml-2" id="sendMessage">Envoyer</button>
-                        </form>
-                    </div>
+
+                        <!-- Messages Section -->
+                        <div class="d-flex flex-column align-items-start">
+                            <% 
+                                ArrayList<ReponseTicket> messages = Modele.getReponsesByTicketId(selectedTicket.getIdTicket());
+                                if (messages != null) {
+                                    for (ReponseTicket message : messages) {
+                                        boolean isAdminMessage = Modele.isAdmin(message.getUserId());
+                            %>
+                                        <div class="message-bubble <%= isAdminMessage ? "admin align-self-end" : "align-self-start" %>">
+                                            <%= message.getContenu() %>
+                                            <small><%= message.getDateReponse() %></small>
+                                        </div>
+                            <%
+                                    }
+                                }
+                            %>
+                        </div>
+
+                        <!-- Input to Submit a New Message -->
+                        <div class="mt-4">
+                            <form action="messages" method="post" class="d-flex align-items-center">
+                                <input type="hidden" name="ticketId" value="<%= selectedTicket.getIdTicket() %>">
+                                <input type="text" class="form-control" name="contenu" placeholder="Écrivez votre message ici..." required>
+                                <button type="submit" class="btn btn-primary ml-2">Envoyer</button>
+                            </form>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-warning">Aucun ticket sélectionné.</div>
+                    <% } %>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const ticketItems = document.querySelectorAll(".ticket-list-item");
-
-        ticketItems.forEach(function (ticketItem) {
-            ticketItem.addEventListener("click", function () {
-                const sujet = this.getAttribute("data-sujet");
-                const categorie = this.getAttribute("data-categorie");
-                const statut = this.getAttribute("data-statut");
-                const description = this.getAttribute("data-description");
-                const userId = this.getAttribute("data-user-id");
-
-                document.getElementById("sujet").textContent = sujet;
-                document.getElementById("categorie").textContent = categorie;
-                document.getElementById("statut").textContent = statut;
-                document.getElementById("description").textContent = description;
-                document.getElementById("userId").textContent = userId;
-            });
-        });
-
-        // Handle sending a new message
-        document.getElementById("sendMessage").addEventListener("click", function () {
-            const newMessage = document.getElementById("newMessage").value.trim();
-            if (newMessage) {
-                const messageBubble = document.createElement("div");
-                messageBubble.className = "message-bubble align-self-end";
-                messageBubble.textContent = newMessage;
-
-                const messageContainer = document.querySelector(".d-flex.flex-column.align-items-start");
-                messageContainer.appendChild(messageBubble);
-
-                document.getElementById("newMessage").value = ""; // Clear the input field
-            }
-        });
-    });
-    </script>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.7/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>

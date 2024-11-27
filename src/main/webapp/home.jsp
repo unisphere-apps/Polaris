@@ -20,7 +20,7 @@
 <body>
     <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
         <div class="btn-group" role="group">
-            <a href="index.jsp?page=1" class="btn btn-primary btn-lg mx-2">FAQ</a>
+            <a href="faq.jsp" class="btn btn-primary btn-lg mx-2">FAQ</a>
             <a href="tickets?action=create" class="btn btn-primary btn-lg mx-2">Créer un ticket</a>
             <a href="tickets" class="btn btn-primary btn-lg mx-2">Voir mes tickets</a>
             <form action="auth" method="get" style="display: inline;">
