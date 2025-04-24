@@ -92,7 +92,7 @@
         </form>
 
         <p class="text-center mt-3">
-            Pas encore de compte ? <a href="http://localhost/unisphere/lobby/index.php?page=inscription">S'inscrire</a>
+            Pas encore de compte ? <a href="http://10.0.221.104/unisphere/lobby/index.php?page=inscription">S'inscrire</a>
         </p>
     </div>
 

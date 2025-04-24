@@ -26,22 +26,26 @@ public class AuthServlet extends HttpServlet {
         boolean isAuthenticated = Modele.authenticateUser(email, password);
 
         if (isAuthenticated) {
-            // Retrieve the userId from the database using the email
+            // Récupérer l'utilisateur complet par son email
             int userId = Modele.getUserIdByEmail(email);
-            if (userId == -1) {
-                // If userId is not found, redirect with an error
+            User user = Modele.getUserById(userId); // Utilisation de getUserById pour récupérer l'utilisateur
+
+            if (user == null) {
+                // Si l'utilisateur n'est pas trouvé, rediriger avec une erreur
                 response.sendRedirect("login.jsp?error=user_not_found");
                 return;
             }
 
+            // Créer une session et stocker les informations utilisateur
             HttpSession session = request.getSession();
-            session.setAttribute("userEmail", email);
-            session.setAttribute("userId", userId); // Add userId to the session
+            session.setAttribute("userEmail", user.getEmail());
+            session.setAttribute("userId", user.getIdUser());
+            session.setAttribute("roleId", user.getRoleId()); // Stocker le role_id dans la session
 
-            System.out.println("User authenticated: " + email + ", userId: " + userId); // Log for debugging
+            System.out.println("User authenticated: " + user.getEmail() + ", userId: " + user.getIdUser() + ", roleId: " + user.getRoleId()); // Log pour le débogage
             response.sendRedirect("home.jsp");
         } else {
-            System.out.println("Authentication failed for email: " + email); // Log for debugging
+            System.out.println("Authentication failed for email: " + email); // Log pour le débogage
             response.sendRedirect("login.jsp?error=invalid_credentials");
         }
     }
@@ -53,7 +57,7 @@ public class AuthServlet extends HttpServlet {
         if ("logout".equals(action)) {
             handleLogout(request, response);
         } else {
-            System.out.println("Unknown action in doGet: " + action); // Log for debugging
+            System.out.println("Unknown action in doGet: " + action); // Log pour le débogage
             response.sendRedirect("login.jsp");
         }
     }
@@ -62,7 +66,7 @@ public class AuthServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
-            System.out.println("User logged out"); // Log for debugging
+            System.out.println("User logged out"); // Log pour le débogage
         }
         response.sendRedirect("login.jsp?success=logout");
     }

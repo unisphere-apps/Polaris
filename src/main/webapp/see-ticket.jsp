@@ -1,18 +1,38 @@
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="modele.Modele" %>
+<%@ page import="controleur.*" %>
+
 <%
     String userEmail = (String) session.getAttribute("userEmail");
-    if (userEmail == null) {
+    Integer userId = (Integer) session.getAttribute("userId");
+    Integer roleId = (Integer) session.getAttribute("roleId"); // Récupération du rôle depuis la session
+
+    if (userEmail == null || userId == null || roleId == null) {
         response.sendRedirect("login.jsp");
         return;
     }
 
     ArrayList<Ticket> lesTickets = (ArrayList<Ticket>) request.getAttribute("lesTickets");
+    ArrayList<Ticket> filteredTickets = new ArrayList<>(); // Liste filtrée des tickets
+
+    // Filtrage des tickets si l'utilisateur a role_id = 1
+    if (roleId == 1) {
+        for (Ticket ticket : lesTickets) {
+            if (ticket.getUserId() == userId) {
+                filteredTickets.add(ticket); // Inclure uniquement les tickets associés à cet utilisateur
+            }
+        }
+    } else {
+        filteredTickets = lesTickets; // Tous les tickets pour les autres rôles
+    }
+
     Ticket selectedTicket = null;
     User ticketUser = null;
     Categorie ticketCategory = null;
 
     String selectedTicketId = request.getParameter("ticketId");
-    if (selectedTicketId != null && lesTickets != null) {
-        for (Ticket ticket : lesTickets) {
+    if (selectedTicketId != null && filteredTickets != null) {
+        for (Ticket ticket : filteredTickets) {
             if (String.valueOf(ticket.getIdTicket()).equals(selectedTicketId)) {
                 selectedTicket = ticket;
                 ticketUser = Modele.getUserById(ticket.getUserId());
@@ -24,11 +44,6 @@
         }
     }
 %>
-
-
-<%@ page import="java.util.ArrayList" %>
-<%@ page import="modele.Modele" %>
-<%@ page import="controleur.*" %>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -109,28 +124,28 @@
 </head>
 
 <body>
-    <div class="container-fluid">
+    <div class="container-fluid" style="padding-top: 20px;">
         <div class="row">
             <!-- Sidebar with Ticket List -->
-			<div class="col-md-3 col-lg-2 p-3">
-			    <% 
-			        if (lesTickets != null) {
-			            for (Ticket ticket : lesTickets) {
-			                boolean isSelected = selectedTicket != null && ticket.getIdTicket() == selectedTicket.getIdTicket();
-			                boolean isClosed = "fermé".equalsIgnoreCase(ticket.getStatut());
-			    %>
-			                <form action="tickets" method="get">
-			                    <input type="hidden" name="ticketId" value="<%= ticket.getIdTicket() %>">
-			                    <button type="submit" 
-			                            class="ticket-list-item btn btn-block <%= isSelected ? "bg-warning" : (isClosed ? "bg-danger" : "") %>">
-			                        <%= ticket.getSujet() %>
-			                    </button>
-			                </form>
-			    <%
-			            }
-			        }
-			    %>
-			</div>
+            <div class="col-md-3 col-lg-2 p-3">
+                <% 
+                    if (filteredTickets != null) {
+                        for (Ticket ticket : filteredTickets) {
+                            boolean isSelected = selectedTicket != null && ticket.getIdTicket() == selectedTicket.getIdTicket();
+                            boolean isClosed = "fermé".equalsIgnoreCase(ticket.getStatut());
+                %>
+                            <form action="tickets" method="get">
+                                <input type="hidden" name="ticketId" value="<%= ticket.getIdTicket() %>">
+                                <button type="submit" 
+                                        class="ticket-list-item btn btn-block <%= isSelected ? "bg-warning" : (isClosed ? "bg-danger" : "") %>">
+                                    <%= ticket.getSujet() %>
+                                </button>
+                            </form>
+                <%
+                        }
+                    }
+                %>
+            </div>
 
             <!-- Main Content for Ticket Details and Messages -->
             <div class="col-md-9 col-lg-10">
@@ -155,16 +170,22 @@
                         <div class="description-box mb-4">
                             Description: <%= selectedTicket.getDescription() %>
                         </div>
-
-                        <!-- Button to Close or Reopen Ticket -->
-						<form action="ticket-status" method="post" class="mb-4">
-						    <input type="hidden" name="ticketId" value="<%= selectedTicket.getIdTicket() %>">
-						    <button type="submit" name="action" value="<%= selectedTicket.getStatut().equals("ouvert") ? "fermer" : "reouvrir" %>" 
-						            class="btn <%= selectedTicket.getStatut().equals("ouvert") ? "btn-danger" : "btn-success" %>">
-						        <%= selectedTicket.getStatut().equals("ouvert") ? "Fermer" : "Réouvrir" %>
-						    </button>
-						</form>
-
+                        
+                        <% if (roleId == 2 || roleId == 3) { %> <!-- Supposons que roleId == 2 signifie administrateur -->
+						    <div class="mb-4">
+						        <form action="tickets" method="post" class="form-inline">
+						            <input type="hidden" name="action" value="updateStatus">
+						            <input type="hidden" name="ticketId" value="<%= selectedTicket.getIdTicket() %>">
+						            <label for="newStatus" class="mr-2">Changer le statut :</label>
+						            <select name="newStatus" class="form-control mr-2">
+						                <option value="ouvert" <%= "ouvert".equalsIgnoreCase(selectedTicket.getStatut()) ? "selected" : "" %>>Ouvert</option>
+						                <option value="fermé" <%= "fermé".equalsIgnoreCase(selectedTicket.getStatut()) ? "selected" : "" %>>Fermé</option>
+						            </select>
+						            <button type="submit" class="btn btn-success">Mettre à jour</button>
+						        </form>
+						    </div>
+						<% } %>
+                        
 
                         <!-- Messages Section -->
                         <div class="d-flex flex-column align-items-start">

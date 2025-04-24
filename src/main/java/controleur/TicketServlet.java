@@ -82,6 +82,31 @@ public class TicketServlet extends HttpServlet {
 
             // Redirect to the list of tickets after creation
             response.sendRedirect("tickets");
+        }  else if ("updateStatus".equals(action)) {
+        // Récupérer les paramètres du formulaire
+        String ticketIdStr = request.getParameter("ticketId");
+        String newStatus = request.getParameter("newStatus");
+
+        if (ticketIdStr != null && newStatus != null && !ticketIdStr.isEmpty() && !newStatus.isEmpty()) {
+            try {
+                int ticketId = Integer.parseInt(ticketIdStr);
+
+                // Appel de la méthode pour mettre à jour le statut du ticket
+                Modele.changeTicketStatus(ticketId, newStatus);
+
+                // Redirection vers la même page pour voir les changements
+                response.sendRedirect("tickets?ticketId=" + ticketId);
+                return;
+
+            } catch (NumberFormatException e) {
+                e.printStackTrace(); // tu peux ajouter un message d'erreur ici
+            }
+        }
+
+        // Redirection fallback en cas de souci
+        response.sendRedirect("tickets");
+
+        
         } else {
             // Default to displaying the ticket list
             doGet(request, response);

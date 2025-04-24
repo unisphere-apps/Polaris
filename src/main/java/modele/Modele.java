@@ -46,7 +46,7 @@ public class Modele {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false; // Par défaut, retourne false si l'utilisateur n'est pas trouvé ou en cas d'erreur
+        return false;
     }
 
 
